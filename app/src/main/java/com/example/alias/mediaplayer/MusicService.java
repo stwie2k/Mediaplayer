@@ -27,12 +27,12 @@ public class MusicService extends Service {
         try {
 
             mediaPlayer = new MediaPlayer();
-//          Uri uri = Uri.parse("android.resource://com.example.alias.mediaplayer/"+R.raw.abc);
-//          mediaPlayer.setDataSource(this, uri);
-//            mediaPlayer.start();
-//            mediaPlayer.prepare();
-//            mediaPlayer.setLooping(true);
-//            mediaPlayer.start();
+            String path="/storage/emulated/0/abc.mp3";
+          mediaPlayer.setDataSource(path);
+
+            mediaPlayer.prepare();
+            mediaPlayer.setLooping(true);
+
         } catch (Exception e) {
             Log.e(TAG,Log.getStackTraceString(e));
         }
