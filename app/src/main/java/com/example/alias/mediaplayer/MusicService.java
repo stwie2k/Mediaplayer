@@ -16,6 +16,7 @@ import static java.security.AccessController.getContext;
 
 public class MusicService extends Service {
 
+    String path="/storage/emulated/0/山高水长.mp3";
     public final IBinder binder = new MyBinder();
     public class MyBinder extends Binder {
         MusicService getService() {
@@ -27,11 +28,11 @@ public class MusicService extends Service {
         try {
 
             mediaPlayer = new MediaPlayer();
-            String path="/storage/emulated/0/abc.mp3";
-          mediaPlayer.setDataSource(path);
+
+         mediaPlayer.setDataSource(path);
 
             mediaPlayer.prepare();
-            mediaPlayer.setLooping(true);
+           mediaPlayer.setLooping(true);
 
         } catch (Exception e) {
             Log.e(TAG,Log.getStackTraceString(e));
@@ -55,7 +56,7 @@ public class MusicService extends Service {
             mediaPlayer.stop();
             try {
                 mediaPlayer.reset();
-                mediaPlayer.setDataSource("/data/music.mp3");
+               mediaPlayer.setDataSource(path);
                 mediaPlayer.prepare();
                 mediaPlayer.seekTo(0);
             } catch (Exception e) {

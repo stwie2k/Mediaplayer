@@ -6,21 +6,29 @@
     android:orientation="vertical">
     <com.example.alias.mediaplayer.CircleImageView
         android:id="@+id/Image"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:src="@drawable/file"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:src="@drawable/img"
 
-        app:civ_border_color="@android:color/holo_red_dark"
-        app:civ_border_width="5dp"
         android:layout_gravity="center" />
 
 
-    <!--显示歌曲状态-->
+    <!--显示歌曲名称-->
+    <TextView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="山高水长"
+
+        android:textSize="20dp"
+
+    android:layout_gravity="center"
+    android:id="@+id/title"/>
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text=""
-        android:id="@+id/MusicStatus"/>
+        android:text="中山大学合唱团"
+        android:layout_gravity="center"
+        android:id="@+id/singer"/>
 
     <RelativeLayout
         android:layout_width="match_parent"

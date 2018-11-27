@@ -10,6 +10,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
@@ -39,11 +41,18 @@ import static java.security.AccessController.getContext;
 public class MainActivity extends AppCompatActivity {
 
     boolean playing = false;
+    boolean anistart=false;
+    boolean tag=false;
     private SeekBar seekBar;
     private MusicService musicService;
     private SimpleDateFormat time = new SimpleDateFormat("mm:ss");
     TextView currenttime;
     TextView totaltime;
+    TextView title;
+    TextView singer;
+    CircleImageView cv;
+    ImageView play;
+    ObjectAnimator animator;
 
     private ServiceConnection sc = new ServiceConnection() {
         @Override
@@ -77,14 +86,16 @@ public class MainActivity extends AppCompatActivity {
 
         currenttime=findViewById(R.id.MusicTime);
         totaltime=findViewById(R.id.MusicTotal);
+        title=findViewById(R.id.title);
+        singer=findViewById(R.id.singer);
 
-        CircleImageView cv=findViewById(R.id.Image);
+         cv=findViewById(R.id.Image);
 
         Intent intent = new Intent(this, MusicService.class);
         bindService(intent, sc, BIND_AUTO_CREATE);
         startService(intent);
 
-        final ObjectAnimator animator = ObjectAnimator.ofFloat(cv, "rotation", 0f, 360.0f);
+          animator = ObjectAnimator.ofFloat(cv, "rotation", 0f, 360.0f);
         animator.setDuration(10000);
         animator.setInterpolator(new LinearInterpolator());
         animator.setRepeatCount(-1);
@@ -126,8 +137,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        ImageView play = findViewById(R.id.play);
+         play = findViewById(R.id.play);
         ImageView stop = findViewById(R.id.stop);
+        ImageView quit =findViewById(R.id.quit);
 
 
         play.setOnClickListener(new View.OnClickListener() {
@@ -140,13 +152,30 @@ public class MainActivity extends AppCompatActivity {
 
                     animator.pause();
 
+                    play.setImageResource(R.drawable.play);
+
                 } else {
                     musicService.play();
 
                     playing = true;
-                    handler.post(runnable);
 
-                    animator.start();
+
+                    play.setImageResource(R.drawable.pause);
+
+                    if(anistart==false){
+                        animator.start();
+                        anistart=true;
+                    }
+                    else{
+                        animator.resume();
+                    }
+
+
+                }
+
+                if(!tag){
+                    handler.post(runnable);
+                    tag=true;
                 }
 
 
@@ -159,6 +188,26 @@ public class MainActivity extends AppCompatActivity {
                 musicService.stop();
                 playing = false;
 
+                animator.pause();
+
+                anistart=false;
+
+                play.setImageResource(R.drawable.play);
+            }
+        });
+
+        quit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handler.removeCallbacks(runnable);
+                unbindService(sc);
+                Intent intent = new Intent(MainActivity.this, MusicService.class);
+                stopService(intent);
+                try {
+                    MainActivity.this.finish();
+                } catch (Exception e) {
+
+                }
             }
         });
 
@@ -172,15 +221,48 @@ public class MainActivity extends AppCompatActivity {
             Uri uri = data.getData();
             try{
 
+
+                musicService.mediaPlayer.reset();
                 path = getPath(this, uri);
-                musicService.mediaPlayer.setDataSource(path);
+                if(playing)
+                {
+                    musicService.stop();
+                    playing = false;
+
+                    animator.pause();
+                    anistart=false;
+                    play.setImageResource(R.drawable.play);
+                }
+
+                musicService.mediaPlayer.setDataSource(this,uri);
                 musicService.mediaPlayer.prepare();
+
+
 
                 totaltime.setText(time.format(musicService.mediaPlayer.getDuration()));
 
                 MediaMetadataRetriever mmr = new MediaMetadataRetriever();
                 mmr.setDataSource(path);
-                String title=mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+                String ti=mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+
+                String art=mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST);
+
+                title.setText(ti);
+                singer.setText(art);
+
+                byte[] data1 = mmr.getEmbeddedPicture();
+                if(data1!=null)
+                {
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(data1, 0, data1.length);
+                    cv.setImageBitmap(bitmap);
+                }
+
+
+
+
+
+
+
 
 
 
