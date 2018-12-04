@@ -62,6 +62,22 @@ public class MusicService extends Service {
                     mediaPlayer.seekTo(progress);
 
                     return true;
+
+                case 0x007:
+                    data.enforceInterface("MusicService");
+                    String path = data.readString();
+
+                   mediaPlayer.reset();
+                    try{
+                        mediaPlayer.setDataSource(path);
+                        mediaPlayer.prepare();
+                    }catch (Exception e){
+
+                    }
+
+
+
+                    return true;
                 default:
                     break;
             }

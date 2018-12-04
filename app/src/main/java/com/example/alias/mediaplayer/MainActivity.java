@@ -150,6 +150,22 @@ public class MainActivity extends AppCompatActivity {
         opnefile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if(playing)
+                {
+                    try{
+                        Parcel data = Parcel.obtain();
+                        Parcel reply = Parcel.obtain();
+                        mBinder.transact(0x002, data, reply, 0);
+                    }catch (Exception e){
+
+                    }
+                    playing = false;
+
+                    animator.pause();
+                    anistart=false;
+                    play.setImageResource(R.drawable.play);
+                }
+
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 //intent.setType(“image/*”);//选择图片
                 intent.setType("audio/*"); //选择音频
@@ -359,24 +375,34 @@ public class MainActivity extends AppCompatActivity {
             try{
 
 
-                musicService.mediaPlayer.reset();
-                path = getPath(this, uri);
-                if(playing)
-                {
-                    musicService.pause();
-                    playing = false;
 
-                    animator.pause();
-                    anistart=false;
-                    play.setImageResource(R.drawable.play);
+                path = getPath(this, uri);
+
+                try{
+                    Parcel data1 = Parcel.obtain();
+                    Parcel reply = Parcel.obtain();
+                    data1.writeInterfaceToken("MusicService");
+                    data1.writeString(path);
+                    mBinder.transact(0x007, data1, reply, 0);
+                }catch (Exception e){
+
                 }
 
-                musicService.mediaPlayer.setDataSource(this,uri);
-                musicService.mediaPlayer.prepare();
 
+//                musicService.mediaPlayer.reset();
+//                        musicService.mediaPlayer.setDataSource(this,uri);
+//                musicService.mediaPlayer.prepare();
 
+                int total=0;
+                try{
+                    Parcel data2 = Parcel.obtain();
+                    Parcel reply = Parcel.obtain();
+                    mBinder.transact(0x005, data2, reply, 0);
+                    total=reply.readInt();
+                }catch (Exception e){
 
-                totaltime.setText(time.format(musicService.mediaPlayer.getDuration()));
+                }
+                totaltime.setText(time.format(total));
 
                 MediaMetadataRetriever mmr = new MediaMetadataRetriever();
                 mmr.setDataSource(path);
