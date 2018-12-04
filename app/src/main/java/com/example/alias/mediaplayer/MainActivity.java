@@ -20,11 +20,13 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Parcel;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.Button;
@@ -34,6 +36,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
+
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.schedulers.Schedulers;
 
 import static android.content.ContentValues.TAG;
 import static java.security.AccessController.getContext;
@@ -54,15 +64,19 @@ public class MainActivity extends AppCompatActivity {
     ImageView play;
     ObjectAnimator animator;
 
+    private IBinder mBinder;
+    private CompositeDisposable mCompositeDisposable = new CompositeDisposable();
+
     private ServiceConnection sc = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            musicService = ((MusicService.MyBinder) service).getService();
+            mBinder = service;
+
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            musicService = null;
+            mBinder = null;
         }
     };
 
@@ -89,13 +103,15 @@ public class MainActivity extends AppCompatActivity {
         title=findViewById(R.id.title);
         singer=findViewById(R.id.singer);
 
-         cv=findViewById(R.id.Image);
+        cv=findViewById(R.id.Image);
 
         Intent intent = new Intent(this, MusicService.class);
         bindService(intent, sc, BIND_AUTO_CREATE);
         startService(intent);
 
-          animator = ObjectAnimator.ofFloat(cv, "rotation", 0f, 360.0f);
+
+
+        animator = ObjectAnimator.ofFloat(cv, "rotation", 0f, 360.0f);
         animator.setDuration(10000);
         animator.setInterpolator(new LinearInterpolator());
         animator.setRepeatCount(-1);
@@ -105,7 +121,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser == true) {
-                    musicService.mediaPlayer.seekTo(progress);
+                    try{
+                        Parcel data = Parcel.obtain();
+                        Parcel reply = Parcel.obtain();
+                        data.writeInterfaceToken("MusicService");
+                        data.writeInt(progress);
+                        mBinder.transact(0x006, data, reply, 0);
+                    }catch (Exception e){
+
+                    }
+
+//                    musicService.mediaPlayer.seekTo(progress);
                 }
             }
 
@@ -126,10 +152,10 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 //intent.setType(“image/*”);//选择图片
-                //intent.setType(“audio/*”); //选择音频
+                intent.setType("audio/*"); //选择音频
                 //intent.setType(“video/*”); //选择视频 （mp4 3gp 是android支持的视频格式）
                 //intent.setType(“video/*;image/*”);//同时选择视频和图片
-                intent.setType("*/*");//无类型限制
+//                intent.setType("*/*");//无类型限制
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 startActivityForResult(intent, 1);
 
@@ -145,37 +171,141 @@ public class MainActivity extends AppCompatActivity {
         play.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                if (playing == true) {
-                    musicService.pause();
-                    playing = false;
-
-                    animator.pause();
-
-                    play.setImageResource(R.drawable.play);
-
-                } else {
-                    musicService.play();
-
-                    playing = true;
-
-
-                    play.setImageResource(R.drawable.pause);
-
-                    if(anistart==false){
-                        animator.start();
-                        anistart=true;
-                    }
-                    else{
-                        animator.resume();
-                    }
-
-
-                }
-
                 if(!tag){
-                    handler.post(runnable);
-                    tag=true;
+
+                    if (playing == true) {
+                        try{
+                            Parcel data = Parcel.obtain();
+                            Parcel reply = Parcel.obtain();
+                            mBinder.transact(0x002, data, reply, 0);
+                        }catch (Exception e){
+
+                        }
+                        playing = false;
+
+                        animator.pause();
+
+                        play.setImageResource(R.drawable.play);
+
+                    } else {
+
+                        try{
+                            Parcel data = Parcel.obtain();
+                            Parcel reply = Parcel.obtain();
+                            mBinder.transact(0x001, data, reply, 0);
+                        }catch (Exception e){
+
+                        }
+                        playing = true;
+
+
+                        play.setImageResource(R.drawable.pause);
+
+                        if(anistart==false){
+                            animator.start();
+                            anistart=true;
+//                        totaltime.setText(time.format(musicService.mediaPlayer.getDuration()));
+                        }
+                        else{
+                            animator.resume();
+                        }
+
+
+                    }
+                    int total=0;
+                    try{
+                        Parcel data = Parcel.obtain();
+                        Parcel reply = Parcel.obtain();
+                        mBinder.transact(0x005, data, reply, 0);
+                        total=reply.readInt();
+                    }catch (Exception e){
+
+                    }
+
+
+
+
+
+                    totaltime.setText(time.format(total));
+                    seekBar.setMax(total);
+                    Observable observable= Observable.create(new ObservableOnSubscribe<Integer>() {
+                        @Override
+                        public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+
+                            for (int i = 0; i < 1000; i++) {
+
+                                try {
+                                    Thread.sleep(500); //模拟下载的操作。
+                                } catch (InterruptedException exception) {
+                                    if (!e.isDisposed()) {
+                                        e.onError(exception);
+                                    }
+                                }
+
+                                int current=0;
+                                try{
+                                    Parcel data = Parcel.obtain();
+                                    Parcel reply = Parcel.obtain();
+                                    mBinder.transact(0x004, data, reply, 0);
+                                    current=reply.readInt();
+                                }catch (Exception ex){
+
+                                }
+
+
+
+                                e.onNext(current);
+
+                            }
+                            e.onComplete();
+
+
+                        }
+                    });
+
+
+
+
+
+
+                    DisposableObserver<Integer> disposableObserver = new DisposableObserver<Integer>() {
+
+                        @Override
+                        public void onNext(Integer value) {
+                            Log.d("BackgroundActivity", "onNext=" + value);
+
+                            currenttime.setText(time.format(value));
+
+                            seekBar.setProgress(value);
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            Log.d("BackgroundActivity", "onError=" + e);
+
+                        }
+
+                        @Override
+                        public void onComplete() {
+                            Log.d("BackgroundActivity", "onComplete");
+
+                        }
+
+
+
+                    };
+
+                    observable.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(disposableObserver);
+                    mCompositeDisposable.add(disposableObserver);
+
+
+
+
+
+
+
+//                    handler.post(runnable);
+//                    tag=true;
                 }
 
 
@@ -185,7 +315,13 @@ public class MainActivity extends AppCompatActivity {
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                musicService.stop();
+                try{
+                    Parcel data = Parcel.obtain();
+                    Parcel reply = Parcel.obtain();
+                    mBinder.transact(0x003, data, reply, 0);
+                }catch (Exception e){
+
+                }
                 playing = false;
 
                 animator.pause();
@@ -205,6 +341,7 @@ public class MainActivity extends AppCompatActivity {
                 stopService(intent);
                 try {
                     MainActivity.this.finish();
+                    System.exit(0);
                 } catch (Exception e) {
 
                 }
@@ -226,7 +363,7 @@ public class MainActivity extends AppCompatActivity {
                 path = getPath(this, uri);
                 if(playing)
                 {
-                    musicService.stop();
+                    musicService.pause();
                     playing = false;
 
                     animator.pause();
@@ -391,7 +528,14 @@ public class MainActivity extends AppCompatActivity {
         return "com.android.providers.media.documents".equals(uri.getAuthority());
     }
 
-
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            moveTaskToBack(false);
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
 
 
 
